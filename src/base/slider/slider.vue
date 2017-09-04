@@ -56,7 +56,7 @@
               this._play()
             }
           }
-          this.refresh()
+          this.slider.refresh()
         }, 60)
       })
     },
