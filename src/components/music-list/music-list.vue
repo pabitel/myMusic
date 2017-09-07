@@ -1,11 +1,17 @@
 <template>
   <div class="music-list">
-    <div class="back">
+    <div class="back" @click="back">
       <i class="icon-back"></i>
     </div>
     <h1 class="title" v-html="title"></h1>
     <div class="bg-image" :style="bgStyle" ref="bgImage">
-      <div class="filter"></div>
+      <div class="play-wrapper">
+        <div class="play" v-show="songs.length>0" ref="playBtn">
+          <i class="icon-play"></i>
+          <span class="text">随机播放全部</span>
+        </div>
+      </div>
+      <div class="filter" ref="filter"></div>
     </div>
     <div class="bg-layer" ref="bgLayer"></div>
     <scroll :data="songs"
@@ -18,6 +24,9 @@
       <div class="song-list-wrapper">
         <song-list :songs="songs"></song-list>
       </div>
+      <div v-show="!songs.length" class="loading-container">
+        <loading></loading>
+      </div>
     </scroll>
   </div>
 </template>
@@ -25,8 +34,13 @@
 <script type="text/ecmascript-6">
   import Scroll from 'base/scroll/scroll'
   import SongList from 'base/song-list/song-list'
+  import { prefixStyle } from 'common/js/dom'
+  import Loading from 'base/loading/loading'
 
   const RESOLVED_HEIGHT = 40
+  const transform = prefixStyle('transform')
+  const backdrop = prefixStyle('backdrop-filter')
+
   export default {
     props: {
       bgImage: {
@@ -61,25 +75,42 @@
     },
     components: {
       Scroll,
-      SongList
+      SongList,
+      Loading
     },
     methods: {
       scroll (pos) {
         this.scrollY = pos.y
+      },
+      back () {
+        this.$router.back()
       }
     },
     watch: {
       scrollY (newY) {
         let translateY = Math.max(this.maxTranslateY, newY)
-        this.$refs.bgLayer.style['webkitTransform'] = `translate3d(0,${translateY}px,0)`
+        this.$refs.bgLayer.style[transform] = `translate3d(0,${translateY}px,0)`
         let zindex = 0
+        let scale = 1
+        let blur = 0
+        const percent = Math.abs(newY / this.imageHeight)
+        if (newY > 0) {
+          scale = 1 + percent
+          zindex = 10
+          this.$refs.bgImage.style[transform] = `scale(${scale})`
+        } else {
+          blur = Math.min(20 * percent, 20)
+        }
+        this.$refs.filter.style[backdrop] = `blur(${blur}px)`
         if (this.maxTranslateY > newY) {
           zindex = 10
           this.$refs.bgImage.style.paddingTop = 0
           this.$refs.bgImage.style.height = RESOLVED_HEIGHT + 'px'
+          this.$refs.playBtn.style.display = 'none'
         } else {
           this.$refs.bgImage.style.paddingTop = '70%'
           this.$refs.bgImage.style.height = 0
+          this.$refs.playBtn.style.display = ''
         }
         this.$refs.bgImage.style.zIndex = zindex
       }
